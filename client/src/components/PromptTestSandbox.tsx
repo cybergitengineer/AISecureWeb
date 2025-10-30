@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Play, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface TestResult {
   status: "safe" | "warning" | "dangerous";
@@ -16,28 +18,28 @@ export function PromptTestSandbox() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
+  const { toast } = useToast();
 
-  const handleTest = () => {
+  const handleTest = async () => {
     setIsLoading(true);
-    console.log('Testing prompt:', prompt);
     
-    // Mock test result
-    setTimeout(() => {
-      const mockResult: TestResult = {
-        status: prompt.toLowerCase().includes('ignore') || prompt.toLowerCase().includes('bypass') ? 'dangerous' : 
-                prompt.toLowerCase().includes('system') ? 'warning' : 'safe',
-        threats: prompt.toLowerCase().includes('ignore') ? ['Prompt Injection Attempt', 'Instruction Override'] : 
-                 prompt.toLowerCase().includes('system') ? ['Potential System Prompt Leak'] : [],
-        confidence: 87,
-        analysis: prompt.toLowerCase().includes('ignore') 
-          ? 'This prompt contains patterns commonly associated with prompt injection attacks. It attempts to override system instructions.'
-          : prompt.toLowerCase().includes('system')
-          ? 'This prompt may attempt to extract system-level information. Review before deployment.'
-          : 'No security threats detected in this prompt. Safe to use.'
-      };
-      setResult(mockResult);
+    try {
+      const response = await apiRequest<TestResult>("/api/security/test-prompt", {
+        method: "POST",
+        body: JSON.stringify({ prompt }),
+      });
+      
+      setResult(response);
+    } catch (error: any) {
+      console.error('Error testing prompt:', error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze prompt. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const statusConfig = {

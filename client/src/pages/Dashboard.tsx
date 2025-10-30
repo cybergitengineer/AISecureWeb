@@ -1,35 +1,74 @@
 import { SecurityScoreCard } from "@/components/SecurityScoreCard";
 import { StatCard } from "@/components/StatCard";
 import { VulnerabilityTable } from "@/components/VulnerabilityTable";
-import { Shield, AlertTriangle, CheckCircle, Activity } from "lucide-react";
+import { Shield, AlertTriangle, Activity } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface Vulnerability {
+  id: string;
+  title: string;
+  severity: "critical" | "high" | "medium" | "low";
+  category: string;
+  model?: string;
+  timestamp: string;
+}
+
+interface SecurityStats {
+  totalScans: number;
+  vulnerabilitiesFound: number;
+  modelsProtected: number;
+  issuesResolved: number;
+}
 
 export default function Dashboard() {
-  const mockVulnerabilities = [
-    {
-      id: "vuln-1",
-      title: "Prompt injection vulnerability detected",
-      severity: "critical" as const,
-      category: "Prompt Security",
-      model: "gpt-4",
-      timestamp: "2 hours ago"
-    },
-    {
-      id: "vuln-2",
-      title: "PII exposure in model responses",
-      severity: "high" as const,
-      category: "Data Privacy",
-      model: "claude-3",
-      timestamp: "5 hours ago"
-    },
-    {
-      id: "vuln-3",
-      title: "Insufficient input validation",
-      severity: "medium" as const,
-      category: "Input Security",
-      model: "gpt-3.5",
-      timestamp: "1 day ago"
+  const { toast } = useToast();
+
+  const { data: stats, isLoading: statsLoading } = useQuery<SecurityStats>({
+    queryKey: ["/api/security/stats"],
+  });
+
+  const { data: vulnerabilities = [], isLoading: vulnsLoading } = useQuery<Vulnerability[]>({
+    queryKey: ["/api/vulnerabilities"],
+  });
+
+  const handleDeleteVulnerability = async (id: string) => {
+    try {
+      await apiRequest<{ success: boolean }>(`/api/vulnerabilities/${id}`, {
+        method: "DELETE",
+      });
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/vulnerabilities"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/security/stats"] });
+      
+      toast({
+        title: "Success",
+        description: "Vulnerability marked as resolved",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete vulnerability",
+        variant: "destructive"
+      });
     }
-  ];
+  };
+
+  // Calculate security score based on vulnerabilities
+  const calculateSecurityScore = () => {
+    if (!vulnerabilities.length) return { score: 92, status: "excellent" as const };
+    
+    const criticalCount = vulnerabilities.filter(v => v.severity === "critical").length;
+    const highCount = vulnerabilities.filter(v => v.severity === "high").length;
+    
+    if (criticalCount > 2) return { score: 42, status: "critical" as const };
+    if (criticalCount > 0 || highCount > 3) return { score: 65, status: "warning" as const };
+    if (highCount > 0) return { score: 78, status: "good" as const };
+    return { score: 92, status: "excellent" as const };
+  };
+
+  const { score, status } = calculateSecurityScore();
 
   return (
     <div className="space-y-8">
@@ -41,22 +80,22 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <SecurityScoreCard score={92} status="excellent" trend={5} />
+        <SecurityScoreCard score={score} status={status} trend={5} />
         <StatCard
           title="Total Scans"
-          value="1,284"
+          value={statsLoading ? "..." : stats?.totalScans.toLocaleString() || "0"}
           icon={Activity}
           trend={{ value: 12, label: 'from last month' }}
         />
         <StatCard
           title="Vulnerabilities"
-          value="23"
+          value={statsLoading ? "..." : stats?.vulnerabilitiesFound.toString() || "0"}
           icon={AlertTriangle}
           trend={{ value: -18, label: 'from last month' }}
         />
         <StatCard
           title="Models Protected"
-          value="47"
+          value={statsLoading ? "..." : stats?.modelsProtected.toString() || "0"}
           icon={Shield}
           trend={{ value: 8, label: 'from last month' }}
         />
@@ -64,10 +103,14 @@ export default function Dashboard() {
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Recent Vulnerabilities</h2>
-        <VulnerabilityTable
-          vulnerabilities={mockVulnerabilities}
-          onViewDetails={(id) => console.log('View details:', id)}
-        />
+        {vulnsLoading ? (
+          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+        ) : (
+          <VulnerabilityTable
+            vulnerabilities={vulnerabilities}
+            onViewDetails={handleDeleteVulnerability}
+          />
+        )}
       </div>
     </div>
   );
