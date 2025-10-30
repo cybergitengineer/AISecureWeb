@@ -30,6 +30,7 @@ Preferred communication style: Simple, everyday language.
 - Dashboard: Security metrics overview with stats cards and vulnerability table
 - Vulnerability Scanner: Comprehensive scanner for testing AI models with custom test cases
 - Prompt Testing: Interactive sandbox for testing prompts against security threats
+- API Security: Dual-feature scanner for REST API vulnerability testing and API key detection
 - Security Monitor: Real-time monitoring dashboard showing recent security events and threat analysis
 - Best Practices: Guided recommendations for AI security implementation
 - Landing: Marketing page with feature showcase
@@ -41,6 +42,8 @@ Preferred communication style: Simple, everyday language.
 **API Design**: RESTful API endpoints with JSON request/response format:
 - `/api/security/test-prompt` - Analyzes prompts for security threats
 - `/api/security/scan` - Scans AI models for vulnerabilities using custom test cases
+- `/api/security/scan-api` - Scans REST API endpoints for security vulnerabilities
+- `/api/security/scan-api-key` - Detects exposed API keys in code with multi-layer sanitization
 - `/api/security/scans` - Retrieves recent security scan history for monitoring
 - `/api/security/stats` - Returns security statistics dashboard data
 - `/api/vulnerabilities` - CRUD operations for vulnerability records
@@ -61,7 +64,7 @@ Preferred communication style: Simple, everyday language.
 **ORM**: Drizzle ORM for type-safe database queries and schema management.
 
 **Schema Design**:
-- `security_scans`: Records of all security analysis operations (prompt tests, vulnerability scans, output checks) with threat detection results
+- `security_scans`: Records of all security analysis operations (prompt tests, vulnerability scans, API scans, API key scans) with threat detection results. Implements multi-layer sanitization for API key scans to prevent credential leakage.
 - `vulnerabilities`: Vulnerability records with severity classification (critical, high, medium, low)
 
 **Migration Strategy**: Drizzle Kit for schema migrations stored in `/migrations` directory.
