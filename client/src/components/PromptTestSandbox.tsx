@@ -34,7 +34,7 @@ export function PromptTestSandbox() {
       console.error('Error testing prompt:', error);
       toast({
         title: "Error",
-        description: "Failed to analyze prompt. Please try again.",
+        description: error.message || "Failed to analyze prompt. Please try again.",
         variant: "destructive"
       });
     } finally {

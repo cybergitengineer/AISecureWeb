@@ -2,21 +2,20 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzePromptSecurity, scanForVulnerabilities } from "./ai-security";
-import { insertSecurityScanSchema, insertVulnerabilitySchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Test prompt security
   app.post("/api/security/test-prompt", async (req, res) => {
     try {
-      const { prompt } = req.body;
+      const body = z.object({ prompt: z.string().min(1) }).safeParse(req.body);
       
-      if (!prompt || typeof prompt !== "string") {
-        return res.status(400).json({ error: "Prompt is required" });
+      if (!body.success) {
+        return res.status(400).json({ error: "Valid prompt is required" });
       }
 
       // Analyze the prompt using AI
-      const result = await analyzePromptSecurity(prompt);
+      const result = await analyzePromptSecurity(body.data.prompt);
 
       // Store the scan result
       await storage.createSecurityScan({
@@ -85,13 +84,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Scan for vulnerabilities
   app.post("/api/security/scan", async (req, res) => {
     try {
-      const { modelName, testCases } = req.body;
+      const body = z.object({ 
+        modelName: z.string().min(1),
+        testCases: z.array(z.string())
+      }).safeParse(req.body);
       
-      if (!modelName || !Array.isArray(testCases)) {
-        return res.status(400).json({ error: "Model name and test cases are required" });
+      if (!body.success) {
+        return res.status(400).json({ error: "Valid model name and test cases are required" });
       }
 
-      const result = await scanForVulnerabilities(modelName, testCases);
+      const result = await scanForVulnerabilities(body.data.modelName, body.data.testCases);
 
       // Store discovered vulnerabilities
       for (const vuln of result.vulnerabilities) {

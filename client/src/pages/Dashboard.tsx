@@ -108,7 +108,7 @@ export default function Dashboard() {
         ) : (
           <VulnerabilityTable
             vulnerabilities={vulnerabilities}
-            onViewDetails={handleDeleteVulnerability}
+            onDelete={handleDeleteVulnerability}
           />
         )}
       </div>

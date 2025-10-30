@@ -30,48 +30,6 @@ export class MemStorage implements IStorage {
   constructor() {
     this.scans = new Map();
     this.vulnerabilities = new Map();
-    this.initializeSampleData();
-  }
-
-  private initializeSampleData() {
-    // Add some sample vulnerabilities for demonstration
-    const sampleVulns: InsertVulnerability[] = [
-      {
-        title: "Prompt injection vulnerability detected",
-        severity: "critical",
-        category: "Prompt Security",
-        model: "gpt-4",
-        description: "Detected pattern attempting to override system instructions"
-      },
-      {
-        title: "PII exposure in model responses",
-        severity: "high",
-        category: "Data Privacy",
-        model: "claude-3",
-        description: "Model is leaking personally identifiable information in responses"
-      },
-      {
-        title: "Insufficient input validation",
-        severity: "medium",
-        category: "Input Security",
-        model: "gpt-3.5",
-        description: "User inputs are not properly sanitized before processing"
-      }
-    ];
-
-    sampleVulns.forEach(vuln => {
-      const id = randomUUID();
-      const timestamp = new Date(Date.now() - Math.random() * 86400000 * 3);
-      this.vulnerabilities.set(id, { 
-        ...vuln, 
-        id, 
-        timestamp,
-        model: vuln.model || null,
-        description: vuln.description || null
-      });
-    });
-
-    this.issuesResolvedCount = 156;
   }
 
   async createSecurityScan(insertScan: InsertSecurityScan): Promise<SecurityScan> {
