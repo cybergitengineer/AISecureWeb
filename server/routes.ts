@@ -20,7 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store the scan result
       await storage.createSecurityScan({
         type: "prompt_test",
-        input: prompt,
+        input: body.data.prompt,
         status: result.status,
         confidence: result.confidence,
         threats: result.threats,
@@ -101,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: vuln.title,
           severity: vuln.severity,
           category: vuln.category,
-          model: modelName,
+          model: body.data.modelName,
           description: vuln.description
         });
       }
