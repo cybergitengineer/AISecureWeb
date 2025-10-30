@@ -12,6 +12,7 @@ import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import PromptTesting from "@/pages/PromptTesting";
 import BestPractices from "@/pages/BestPractices";
+import VulnerabilityScanner from "@/pages/VulnerabilityScanner";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/landing" component={Landing} />
       <Route path="/" component={Dashboard} />
       <Route path="/prompt-testing" component={PromptTesting} />
+      <Route path="/scanner" component={VulnerabilityScanner} />
       <Route path="/best-practices" component={BestPractices} />
       <Route component={NotFound} />
     </Switch>
