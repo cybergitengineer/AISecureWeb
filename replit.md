@@ -30,6 +30,7 @@ Preferred communication style: Simple, everyday language.
 - Dashboard: Security metrics overview with stats cards and vulnerability table
 - Vulnerability Scanner: Comprehensive scanner for testing AI models with custom test cases
 - Prompt Testing: Interactive sandbox for testing prompts against security threats
+- Security Monitor: Real-time monitoring dashboard showing recent security events and threat analysis
 - Best Practices: Guided recommendations for AI security implementation
 - Landing: Marketing page with feature showcase
 
@@ -40,6 +41,7 @@ Preferred communication style: Simple, everyday language.
 **API Design**: RESTful API endpoints with JSON request/response format:
 - `/api/security/test-prompt` - Analyzes prompts for security threats
 - `/api/security/scan` - Scans AI models for vulnerabilities using custom test cases
+- `/api/security/scans` - Retrieves recent security scan history for monitoring
 - `/api/security/stats` - Returns security statistics dashboard data
 - `/api/vulnerabilities` - CRUD operations for vulnerability records
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Play, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface TestResult {
@@ -30,15 +30,19 @@ export function PromptTestSandbox() {
       });
       
       setResult(response);
+      setIsLoading(false);
+      
+      // Invalidate caches so Security Monitor and Dashboard update (don't await to avoid blocking)
+      queryClient.invalidateQueries({ queryKey: ["/api/security/scans"] }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ["/api/security/stats"] }).catch(console.error);
     } catch (error: any) {
       console.error('Error testing prompt:', error);
+      setIsLoading(false);
       toast({
         title: "Error",
         description: error.message || "Failed to analyze prompt. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
