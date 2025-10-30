@@ -14,6 +14,7 @@ import PromptTesting from "@/pages/PromptTesting";
 import BestPractices from "@/pages/BestPractices";
 import VulnerabilityScanner from "@/pages/VulnerabilityScanner";
 import SecurityMonitor from "@/pages/SecurityMonitor";
+import APISecurity from "@/pages/APISecurity";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/prompt-testing" component={PromptTesting} />
       <Route path="/scanner" component={VulnerabilityScanner} />
+      <Route path="/api-security" component={APISecurity} />
       <Route path="/monitor" component={SecurityMonitor} />
       <Route path="/best-practices" component={BestPractices} />
       <Route component={NotFound} />

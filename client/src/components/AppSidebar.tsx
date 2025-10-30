@@ -1,4 +1,4 @@
-import { Home, Shield, TestTube, FileText, Activity, Settings, AlertTriangle } from "lucide-react";
+import { Home, Shield, TestTube, FileText, Activity, Settings, AlertTriangle, Key } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -28,6 +28,11 @@ const menuItems = [
     title: "Prompt Testing",
     url: "/prompt-testing",
     icon: TestTube,
+  },
+  {
+    title: "API Security",
+    url: "/api-security",
+    icon: Key,
   },
   {
     title: "Security Monitor",

@@ -177,3 +177,219 @@ Respond in JSON format with:
     };
   }
 }
+
+export interface APISecurityResult {
+  status: "safe" | "warning" | "dangerous";
+  threats: string[];
+  confidence: number;
+  analysis: string;
+}
+
+export async function analyzeAPIEndpointSecurity(
+  endpoint: string,
+  method: string,
+  headers?: string,
+  body?: string
+): Promise<APISecurityResult> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: `You are an API security expert analyzing REST API endpoints for vulnerabilities. Check for:
+- Authentication issues (missing auth headers, weak auth)
+- Authorization vulnerabilities (broken access control)
+- SQL/NoSQL injection vulnerabilities in parameters
+- Command injection risks
+- XML/XXE vulnerabilities
+- Insecure HTTP methods (if DELETE/PUT without auth)
+- CORS misconfigurations
+- Rate limiting gaps
+- Sensitive data exposure in responses
+- Input validation weaknesses
+
+Respond in JSON format with:
+{
+  "status": "safe" | "warning" | "dangerous",
+  "threats": ["threat1", "threat2"],
+  "confidence": 0-100,
+  "analysis": "detailed security assessment"
+}`
+        },
+        {
+          role: "user",
+          content: `Analyze this API endpoint for security vulnerabilities:
+
+Endpoint: ${endpoint}
+Method: ${method}
+Headers: ${headers || 'None provided'}
+Request Body: ${body || 'None provided'}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_completion_tokens: 1500
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("No response from AI");
+    }
+
+    const result = JSON.parse(content);
+    return {
+      status: result.status || "safe",
+      threats: result.threats || [],
+      confidence: result.confidence || 50,
+      analysis: result.analysis || "Analysis completed"
+    };
+  } catch (error) {
+    console.error("Error analyzing API security:", error);
+    return fallbackAPIAnalysis(endpoint, method, headers, body);
+  }
+}
+
+function fallbackAPIAnalysis(endpoint: string, method: string, headers?: string, body?: string): APISecurityResult {
+  const threats: string[] = [];
+  let status: "safe" | "warning" | "dangerous" = "safe";
+  
+  const lowerEndpoint = endpoint.toLowerCase();
+  const lowerHeaders = (headers || '').toLowerCase();
+  const lowerBody = (body || '').toLowerCase();
+  
+  if (!lowerHeaders.includes('authorization') && !lowerHeaders.includes('api-key')) {
+    threats.push("Missing Authentication Headers");
+    status = "warning";
+  }
+  
+  if (method === 'DELETE' || method === 'PUT') {
+    if (!lowerHeaders.includes('authorization')) {
+      threats.push("Dangerous HTTP Method Without Authentication");
+      status = "dangerous";
+    }
+  }
+  
+  if (lowerEndpoint.includes('admin') || lowerEndpoint.includes('internal')) {
+    threats.push("Potentially Exposed Admin Endpoint");
+    status = status === "dangerous" ? "dangerous" : "warning";
+  }
+  
+  if (lowerBody.includes('query') || lowerBody.includes('sql')) {
+    threats.push("Potential SQL Injection Vector");
+    status = "dangerous";
+  }
+  
+  const analysis = status === "safe"
+    ? "Basic security checks passed. API endpoint appears secure based on static analysis."
+    : status === "warning"
+    ? "This API endpoint has some security concerns that should be reviewed. Consider adding proper authentication and input validation."
+    : "This API endpoint has critical security vulnerabilities. Immediate attention required to prevent unauthorized access and potential data breaches.";
+  
+  return {
+    status,
+    threats,
+    confidence: threats.length > 0 ? 80 : 75,
+    analysis
+  };
+}
+
+export async function analyzeAPIKeySecurity(input: string): Promise<APISecurityResult> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: `You are an API key security expert. Analyze the given text/code for:
+- Exposed API keys (AWS, OpenAI, Stripe, GitHub, etc.)
+- Hardcoded secrets and credentials
+- Weak API key formats
+- Keys in version control (git commits, config files)
+- API key rotation issues
+- Insufficient key entropy
+
+Detect common patterns like:
+- sk-proj-... (OpenAI)
+- AKIA... (AWS)
+- ghp_... (GitHub)
+- pk_live_... or sk_live_... (Stripe)
+- Bearer tokens
+- JWT tokens in code
+
+Respond in JSON format with:
+{
+  "status": "safe" | "warning" | "dangerous",
+  "threats": ["detected key type 1", "detected key type 2"],
+  "confidence": 0-100,
+  "analysis": "security assessment with recommendations"
+}`
+        },
+        {
+          role: "user",
+          content: `Scan this text/code for exposed API keys and security issues:\n\n${input}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_completion_tokens: 1500
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("No response from AI");
+    }
+
+    const result = JSON.parse(content);
+    return {
+      status: result.status || "safe",
+      threats: result.threats || [],
+      confidence: result.confidence || 50,
+      analysis: result.analysis || "Analysis completed"
+    };
+  } catch (error) {
+    console.error("Error analyzing API key security:", error);
+    return fallbackAPIKeyAnalysis(input);
+  }
+}
+
+function fallbackAPIKeyAnalysis(input: string): APISecurityResult {
+  const threats: string[] = [];
+  let status: "safe" | "warning" | "dangerous" = "safe";
+  
+  const apiKeyPatterns = [
+    { pattern: /sk-proj-[A-Za-z0-9_-]{40,}/, name: "OpenAI API Key" },
+    { pattern: /AKIA[0-9A-Z]{16}/, name: "AWS Access Key" },
+    { pattern: /ghp_[A-Za-z0-9]{36,}/, name: "GitHub Personal Access Token" },
+    { pattern: /sk_live_[A-Za-z0-9]{24,}/, name: "Stripe Secret Key" },
+    { pattern: /pk_live_[A-Za-z0-9]{24,}/, name: "Stripe Publishable Key" },
+    { pattern: /AIza[0-9A-Za-z_-]{35}/, name: "Google API Key" },
+    { pattern: /ya29\.[A-Za-z0-9_-]{68,}/, name: "Google OAuth Token" },
+    { pattern: /Bearer\s+[A-Za-z0-9_-]{20,}/, name: "Bearer Token" },
+  ];
+  
+  for (const { pattern, name } of apiKeyPatterns) {
+    if (pattern.test(input)) {
+      threats.push(`Exposed ${name}`);
+      status = "dangerous";
+    }
+  }
+  
+  if (input.toLowerCase().includes('api_key') || input.toLowerCase().includes('apikey')) {
+    if (!threats.length) {
+      threats.push("Possible Hardcoded API Key Reference");
+      status = status === "dangerous" ? "dangerous" : "warning";
+    }
+  }
+  
+  const analysis = status === "safe"
+    ? "No exposed API keys detected in the provided text. Remember to always use environment variables for sensitive credentials."
+    : status === "warning"
+    ? "Found references to API keys. Ensure all keys are stored in environment variables and never committed to version control."
+    : "CRITICAL: Exposed API keys detected! These keys should be rotated immediately and removed from code/logs. Always use environment variables or secret management services.";
+  
+  return {
+    status,
+    threats,
+    confidence: threats.length > 0 ? 95 : 85,
+    analysis
+  };
+}
